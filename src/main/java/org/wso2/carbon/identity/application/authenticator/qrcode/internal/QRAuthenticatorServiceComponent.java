@@ -32,7 +32,7 @@ import org.wso2.carbon.user.core.service.RealmService;
 
 
 @Component(
-        name = "org.wso2.carbon.identity.application.authenticator.qrcode.internal.QRAuthenticatorServiceComponent",
+        name = "identity.application.authenticator.qrcode.QRAuthenticatorServiceComponent",
         immediate = true)
 
 public class QRAuthenticatorServiceComponent {

@@ -17,7 +17,7 @@
  */
 package org.wso2.carbon.identity.application.authenticator.qrcode;
 
-import com.google.zxing.WriterException;
+//import com.google.zxing.WriterException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.application.authentication.framework.inbound.InboundConstants;
@@ -54,6 +54,7 @@ public class QRAuthenticator extends AbstractApplicationAuthenticator implements
 
     @Override
     public boolean canHandle(HttpServletRequest request) {
+
         return request.getParameter(QRAuthenticatorConstants.PROCEED_AUTH) != null;
     }
 
@@ -64,6 +65,7 @@ public class QRAuthenticator extends AbstractApplicationAuthenticator implements
             throws AuthenticationFailedException {
 
         String sessionDataKey = request.getParameter(InboundConstants.RequestProcessor.CONTEXT_KEY);
+       // String sessionDataKey = "123456234";
 
         String retryParam = "";
 
@@ -81,7 +83,7 @@ public class QRAuthenticator extends AbstractApplicationAuthenticator implements
         try {
             String qrPage = ServiceURLBuilder.create().addPath(QRAuthenticatorConstants.QR_PAGE)
                     .addParameter("sessionDataKey", sessionDataKey).build().getAbsolutePublicURL();
-            QRUtil.generateQRCode(sessionDataKey);
+           // QRUtil.generateQRCode(sessionDataKey);
             response.sendRedirect(qrPage);
         } catch (IOException e) {
             String errorMessage = String.format("Error occurred when trying to to redirect user to the login page.");
@@ -89,8 +91,6 @@ public class QRAuthenticator extends AbstractApplicationAuthenticator implements
         } catch (URLBuilderException e) {
             String errorMessage = String.format("Error occurred when building the URL for the login page for user.");
             throw new AuthenticationFailedException(errorMessage, e);
-        } catch (WriterException e) {
-            e.printStackTrace();
         }
     }
 
@@ -143,6 +143,7 @@ public class QRAuthenticator extends AbstractApplicationAuthenticator implements
 
     @Override
     public String getFriendlyName() {
+
         //Set the name to be displayed in local authenticator drop down lsit
         return QRAuthenticatorConstants.AUTHENTICATOR_FRIENDLY_NAME;
     }

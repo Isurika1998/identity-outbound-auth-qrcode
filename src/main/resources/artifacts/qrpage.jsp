@@ -1,5 +1,5 @@
 <%--
-  ~ Copyright (c) 2019, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+  ~ Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
   ~
   ~ WSO2 Inc. licenses this file to you under the Apache License,
   ~ Version 2.0 (the "License"); you may not use this file except
@@ -14,54 +14,119 @@
   ~ KIND, either express or implied.  See the License for the
   ~ specific language governing permissions and limitations
   ~ under the License.
-  ~
   --%>
 
-<%@ taglib prefix = "s" uri = "http://java.sun.com/jsp/jstl/core" %>
-<%@ page language = "java" contentType = "text/html; charset=UTF-8" pageEncoding = "UTF-8" %>
-<%@ page import="org.wso2.carbon.identity.application.authenticator.push.PushAuthenticatorConstants" %>
-<%@ page import="java.nio.charset.StandardCharsets" %>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page import="com.google.gson.Gson" %>
+<%@ page import="org.wso2.carbon.identity.application.authentication.endpoint.util.AuthContextAPIClient" %>
+<%@ page import="org.wso2.carbon.identity.application.authentication.endpoint.util.Constants" %>
+<%@ page import="org.wso2.carbon.identity.core.util.IdentityCoreConstants" %>
+<%@ page import="org.wso2.carbon.identity.core.util.IdentityUtil" %>
+<%@ page import="static org.wso2.carbon.identity.application.authentication.endpoint.util.Constants.STATUS" %>
+<%@ page import="static org.wso2.carbon.identity.application.authentication.endpoint.util.Constants.STATUS_MSG" %>
+<%@ page import="static org.wso2.carbon.identity.application.authentication.endpoint.util.Constants.CONFIGURATION_ERROR" %>
+<%@ page import="static org.wso2.carbon.identity.application.authentication.endpoint.util.Constants.AUTHENTICATION_MECHANISM_NOT_CONFIGURED" %>
+<%@ page import="static org.wso2.carbon.identity.application.authentication.endpoint.util.Constants.ENABLE_AUTHENTICATION_WITH_REST_API" %>
+<%@ page import="static org.wso2.carbon.identity.application.authentication.endpoint.util.Constants.ERROR_WHILE_BUILDING_THE_ACCOUNT_RECOVERY_ENDPOINT_URL" %>
+<%@ page import="java.io.File" %>
+<%@ page import="java.util.ArrayList" %>
+<%@ page import="java.util.Arrays" %>
+<%@ page import="java.util.Map" %>
+<%@ page import="org.owasp.encoder.Encode" %>
+
+<%@ include file="includes/localize.jsp" %>
 <jsp:directive.include file="includes/init-url.jsp"/>
 
+
+<!doctype html>
 <html>
 <head>
-    <meta http-equiv = "X-UA-Compatible" content = "IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WSO2 Identity Server</title>
-    <meta charset="<%=StandardCharsets.UTF_8.name()%>">
+    <!-- header -->
+    <%
+        File headerFile = new File(getServletContext().getRealPath("extensions/header.jsp"));
+        if (headerFile.exists()) {
+    %>
+        <jsp:include page="extensions/header.jsp"/>
+    <% } else { %>
+        <jsp:include page="includes/header.jsp"/>
+    <% } %>
+    <script src="js/gadget.js"></script>
+    <script src="js/qrCodeGenerator.js"></script>
+    <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
 
-    <link rel="icon" href="images/favicon.png" type="image/x-icon"/>
-    <link href="libs/bootstrap_3.3.5/css/bootstrap.min.css" rel="stylesheet">
-    <link href="css/Roboto.css" rel="stylesheet">
-    <link href="css/custom-common.css" rel="stylesheet">
-
-    <script language="JavaScript" type="text/javascript" src="libs/jquery_3.4.1/jquery-3.4.1.js"></script>
-    <script language="JavaScript" type="text/javascript" src="libs/bootstrap_3.4.1/js/bootstrap.min.js"></script>
-
-    <header class="header header-default">
-        <div class="container-fluid"><br></div>
-        <div class="container-fluid">
-            <div class="pull-left brand float-remove-xs text-center-xs">
-                <a href="#">
-                    <img src="images/logo-inverse.svg" alt="WSO2" title="WSO2" class="logo">
-                    <h1><em>Identity Server</em></h1>
-                </a>
-            </div>
-        </div>
-    </header>
 </head>
 
-<body>
-<h2>Register Device</h2>
-<h4>Scan this QR code using an authenticator app</h4>
-<br>
-<div class="screenshot">
-    <img src="images/biometricauthentication.gif" class="animation" class="img-fluid">
-</div>
+<body class="login-portal layout authentication-portal-layout">
+    <main class="center-segment">
+        <div class="ui container medium center aligned middle aligned">
+
+            <!-- product-title -->
+            <%
+                File productTitleFile = new File(getServletContext().getRealPath("extensions/product-title.jsp"));
+                if (productTitleFile.exists()) {
+            %>
+                <jsp:include page="extensions/product-title.jsp"/>
+            <% } else { %>
+                <jsp:include page="includes/product-title.jsp"/>
+            <% } %>
+
+            <div class="ui segment">
+                <h3 class="ui header">
+                    Authenticating with QR Code
+                </h3>
+                <h4 class="ui header">
+                    Scan this QR code using an authenticator app
+                </h4>
+                    <div style="display:flex; justify-content:center">
+                        <div class="ui center aligned basic segment" id="qrcode"></div>
+                    </div>
+                
+                
+                <script type="text/javascript">
+                    var qrcode = new QRCode(document.getElementById("qrcode"), {
+                    text: '<%=Encode.forHtmlAttribute(request.getParameter("sessionDataKey"))%>',
+                    width: 180,
+                    height: 180,
+                    colorDark : "#000000",
+                    colorLight : "#ffffff",
+                    correctLevel : QRCode.CorrectLevel.H,
+                });
+                </script>          
+
+            </div>
+        </div>
+    </main>
+    
+
+    <!-- product-footer -->
+    <%
+        File productFooterFile = new File(getServletContext().getRealPath("extensions/product-footer.jsp"));
+        if (productFooterFile.exists()) {
+    %>
+        <jsp:include page="extensions/product-footer.jsp"/>
+    <% } else { %>
+        <jsp:include page="includes/product-footer.jsp"/>
+    <% } %>
+
+    <!-- footer -->
+    <%
+        File footerFile = new File(getServletContext().getRealPath("extensions/footer.jsp"));
+        if (footerFile.exists()) {
+    %>
+        <jsp:include page="extensions/footer.jsp"/>
+    <% } else { %>
+        <jsp:include page="includes/footer.jsp"/>
+    <% } %>
+
+    <script type="text/javascript">
+        $(document).ready(function() {
+            var key =  document.getElementById("ske").value;
+            if(key != null) {
+                loadQRCode(key);
+            }
+        });
+ 
+    </script>
+
 </body>
-
-<script type="text/javascript">
-   
-</script>
-
 </html>
