@@ -20,31 +20,32 @@ package org.wso2.carbon.identity.application.authenticator.qrcode.internal;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.osgi.service.component.ComponentContext;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
 import org.wso2.carbon.identity.application.authenticator.qrcode.QRAuthenticator;
 import org.wso2.carbon.identity.application.authentication.framework.ApplicationAuthenticator;
 import org.wso2.carbon.user.core.service.RealmService;
 
 
-/**
- * @scr.component name="org.wso2.custom.authenticator.local.basic.component" immediate="true"
- * @scr.reference name="realm.service"
- * interface="org.wso2.carbon.user.core.service.RealmService"cardinality="1..1"
- * policy="dynamic" bind="setRealmService" unbind="unsetRealmService"
- */
+@Component(
+        name = "org.wso2.carbon.identity.application.authenticator.qrcode.internal.QRAuthenticatorServiceComponent",
+        immediate = true)
+
 public class QRAuthenticatorServiceComponent {
 
-    private static final Log log = LogFactory.getLog(org.wso2.carbon.identity.application.authenticator.qrcode.internal.QRAuthenticatorServiceComponent.class);
+    private static Log log = LogFactory.getLog(QRAuthenticatorServiceComponent.class);
 
     private static RealmService realmService;
 
-    public static RealmService getRealmService() {
-        return realmService;
-    }
-
+    @Activate
     protected void activate(ComponentContext ctxt) {
         try {
-            QRAuthenticator basicCustomAuth = new QRAuthenticator();
-            ctxt.getBundleContext().registerService(ApplicationAuthenticator.class.getName(), basicCustomAuth, null);
+            QRAuthenticator qrAuth = new QRAuthenticator();
+            ctxt.getBundleContext().registerService(ApplicationAuthenticator.class.getName(), qrAuth, null);
             if (log.isDebugEnabled()) {
                 log.info("QRAuthenticator bundle is activated");
             }
@@ -53,19 +54,33 @@ public class QRAuthenticatorServiceComponent {
         }
     }
 
+    @Deactivate
     protected void deactivate(ComponentContext ctxt) {
         if (log.isDebugEnabled()) {
             log.info("QRAuthenticator bundle is deactivated");
         }
     }
 
-    protected void unsetRealmService(RealmService realmService) {
-        log.debug("UnSetting the Realm Service");
-        org.wso2.carbon.identity.application.authenticator.qrcode.internal.QRAuthenticatorServiceComponent.realmService = null;
+    public static RealmService getRealmService() {
+
+        return realmService;
     }
+
+    @Reference(name = "realm.service",
+            service = org.wso2.carbon.user.core.service.RealmService.class,
+            cardinality = ReferenceCardinality.MANDATORY,
+            policy = ReferencePolicy.DYNAMIC,
+            unbind = "unsetRealmService")
 
     protected void setRealmService(RealmService realmService) {
         log.debug("Setting the Realm Service");
-        org.wso2.carbon.identity.application.authenticator.qrcode.internal.QRAuthenticatorServiceComponent.realmService = realmService;
+        QRAuthenticatorServiceComponent.realmService = realmService;
     }
+
+    protected void unsetRealmService(RealmService realmService) {
+        log.debug("UnSetting the Realm Service");
+        QRAuthenticatorServiceComponent.realmService = null;
+    }
+
+
 }
