@@ -17,8 +17,11 @@
  */
 package org.wso2.carbon.identity.application.authenticator.qrcode;
 
+import com.google.zxing.WriterException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.wso2.carbon.identity.application.authentication.framework.inbound.InboundConstants;
+import org.wso2.carbon.identity.application.authenticator.qrcode.util.QRUtil;
 import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.application.authenticator.qrcode.internal.QRAuthenticatorServiceComponent;
 import org.wso2.carbon.identity.application.authentication.framework.AbstractApplicationAuthenticator;
@@ -29,7 +32,9 @@ import org.wso2.carbon.identity.application.authentication.framework.exception.A
 import org.wso2.carbon.identity.application.authentication.framework.exception.InvalidCredentialsException;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils;
+import org.wso2.carbon.identity.core.ServiceURLBuilder;
 import org.wso2.carbon.user.core.UserStoreException;
+import org.wso2.carbon.identity.core.URLBuilderException;
 import org.wso2.carbon.user.core.UserStoreManager;
 import org.wso2.carbon.user.core.common.AbstractUserStoreManager;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
@@ -37,6 +42,7 @@ import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+
 
 /**
  * QR code based custom Authenticator
@@ -46,6 +52,10 @@ public class QRAuthenticator extends AbstractApplicationAuthenticator implements
     private static final long serialVersionUID = 4345354156955223654L;
     private static final Log log = LogFactory.getLog(QRAuthenticator.class);
 
+    @Override
+    public boolean canHandle(HttpServletRequest request) {
+        return request.getParameter(QRAuthenticatorConstants.PROCEED_AUTH) != null;
+    }
 
     @Override
     protected void initiateAuthenticationRequest(HttpServletRequest request,
@@ -53,25 +63,34 @@ public class QRAuthenticator extends AbstractApplicationAuthenticator implements
                                                  AuthenticationContext context)
             throws AuthenticationFailedException {
 
-        String loginPage = ConfigurationFacade.getInstance().getAuthenticationEndpointURL();//This is the
-        // default WSO2 IS login page. If you can create your custom login page you can use
-        // that instead.
-        String queryParams =
-                FrameworkUtils.getQueryStringWithFrameworkContextId(context.getQueryParams(),
-                        context.getCallerSessionKey(),
-                        context.getContextIdentifier());
+        String sessionDataKey = request.getParameter(InboundConstants.RequestProcessor.CONTEXT_KEY);
+
+        String retryParam = "";
+
+        if (context.isRetrying()) {
+            retryParam = "&authFailure=true&authFailureMsg=login.fail.message";
+        }
+
+        redirectQRPage(response, sessionDataKey);
+
+    }
+
+    protected void redirectQRPage(HttpServletResponse response, String sessionDataKey)
+            throws AuthenticationFailedException {
 
         try {
-            String retryParam = "";
-
-            if (context.isRetrying()) {
-                retryParam = "&authFailure=true&authFailureMsg=login.fail.message";
-            }
-
-            response.sendRedirect(response.encodeRedirectURL(loginPage + ("?" + queryParams)) +
-                    "&authenticators=BasicAuthenticator:" + "LOCAL" + retryParam);
+            String qrPage = ServiceURLBuilder.create().addPath(QRAuthenticatorConstants.QR_PAGE)
+                    .addParameter("sessionDataKey", sessionDataKey).build().getAbsolutePublicURL();
+            QRUtil.generateQRCode(sessionDataKey);
+            response.sendRedirect(qrPage);
         } catch (IOException e) {
-            throw new AuthenticationFailedException(e.getMessage(), e);
+            String errorMessage = String.format("Error occurred when trying to to redirect user to the login page.");
+            throw new AuthenticationFailedException(errorMessage, e);
+        } catch (URLBuilderException e) {
+            String errorMessage = String.format("Error occurred when building the URL for the login page for user.");
+            throw new AuthenticationFailedException(errorMessage, e);
+        } catch (WriterException e) {
+            e.printStackTrace();
         }
     }
 
@@ -100,7 +119,7 @@ public class QRAuthenticator extends AbstractApplicationAuthenticator implements
                             getTenantUserRealm(tenantId).getUserStoreManager();
 
                     // verify user is assigned to role
-                    authorization = ((AbstractUserStoreManager) userStoreManager).isUserInRole(username, "photoSharingRole");
+                    authorization = ((AbstractUserStoreManager) userStoreManager).isUserInRole(username, "roleName");
                 } catch (UserStoreException e) {
                     log.error(e);
                 } catch (org.wso2.carbon.user.api.UserStoreException e) {
@@ -113,10 +132,6 @@ public class QRAuthenticator extends AbstractApplicationAuthenticator implements
 
             if (!authorization) {
                 log.error("user authorization is failed.");
-
-                throw new InvalidCredentialsException("User authentication failed due to invalid credentials",
-                        User.getUserFromUserName(username));
-
             }
         }
     }
@@ -130,16 +145,6 @@ public class QRAuthenticator extends AbstractApplicationAuthenticator implements
     public String getFriendlyName() {
         //Set the name to be displayed in local authenticator drop down lsit
         return QRAuthenticatorConstants.AUTHENTICATOR_FRIENDLY_NAME;
-    }
-
-    @Override
-    public boolean canHandle(HttpServletRequest httpServletRequest) {
-        String userName = httpServletRequest.getParameter(QRAuthenticatorConstants.USER_NAME);
-        String password = httpServletRequest.getParameter(QRAuthenticatorConstants.PASSWORD);
-        if (userName != null && password != null) {
-            return true;
-        }
-        return false;
     }
 
     @Override

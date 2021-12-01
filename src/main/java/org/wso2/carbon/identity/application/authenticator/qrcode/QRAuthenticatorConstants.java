@@ -25,6 +25,7 @@ public abstract class QRAuthenticatorConstants {
     public static final String AUTHENTICATOR_NAME = "qrcode";
     public static final String AUTHENTICATOR_FRIENDLY_NAME = "QRCodeBased";
     public static final String USER_NAME = "username";
-    public static final String PASSWORD = "password";
-
+    public static final String QR_PAGE = "/authenticationendpoint/qrpage.jsp";
+    public static final String PROCEED_AUTH = "proceedAuthorization";
+    public static final String QR_CODE_CLAIM_URL = "http://wso2.org/claims/identity/qrcodeurl";
 }
